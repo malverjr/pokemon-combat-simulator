@@ -8,6 +8,65 @@ import time
 # Apply layout constraints
 st.set_page_config(page_title="Pokemon Combat Simulator", page_icon="⚔️", layout="wide")
 
+if "splash_shown" not in st.session_state:
+    st.session_state.splash_shown = False
+
+if not st.session_state.splash_shown:
+    splash_ph = st.empty()
+    with splash_ph.container():
+        st.markdown('''
+        <style>
+        div[data-testid="stVideo"] {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 999998 !important;
+            pointer-events: none !important;
+            background: black;
+        }
+        div[data-testid="stVideo"] video {
+            object-fit: cover !important;
+            width: 100% !important;
+            height: 100% !important;
+        }
+        .splash-logo-container {
+            position: fixed !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            z-index: 999999 !important;
+            text-align: center !important;
+            width: 100%;
+            pointer-events: none;
+        }
+        .splash-logo-container img {
+            width: 80vw;
+            max-width: 700px;
+            filter: drop-shadow(0px 0px 30px rgba(0,0,0,1));
+            animation: pulse-splash 1.5s infinite ease-in-out;
+        }
+        @keyframes pulse-splash {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+        header { display: none !important; }
+        div[data-testid="stAppViewContainer"] {
+            background-color: black !important;
+        }
+        </style>
+        <div class="splash-logo-container">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/9/98/International_Pok%C3%A9mon_logo.svg">
+        </div>
+        ''', unsafe_allow_html=True)
+        st.video("mylivewallpapers-com-Fire-Breathing-Charizard-3440x1440.mp4", autoplay=True, muted=True, loop=True)
+    
+    time.sleep(3.5)
+    st.session_state.splash_shown = True
+    st.rerun()
+
 # Inject Custom "Apple Pro" Premium CSS
 st.markdown("""
 <style>
