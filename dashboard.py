@@ -439,7 +439,7 @@ def extract_pokemon_data(data):
     }
 
 # Pokemon Selection
-st.header("1. Choose Your Pokemon")
+st.header("Choose Your Pokemon")
 col1, col2 = st.columns(2)
 
 pokemon_list = fetch_pokemon_list()
@@ -463,7 +463,7 @@ pkmn1 = extract_pokemon_data(data1_raw)
 pkmn2 = extract_pokemon_data(data2_raw)
 
 # Show Stats
-st.header("2. Pokémon Stats")
+st.header("Pokémon Stats")
 scol1, scol2 = st.columns(2)
 
 def render_pokemon_card(pkmn):
@@ -483,7 +483,7 @@ with scol2:
     render_pokemon_card(pkmn2)
 
 # Charts
-st.header("4. Head-to-Head Comparison")
+st.header("Head-to-Head Comparison")
 stat_df = pd.DataFrame([
     {"pokemon": pkmn1["name"].capitalize(), **pkmn1["stats"]},
     {"pokemon": pkmn2["name"].capitalize(), **pkmn2["stats"]}
@@ -539,6 +539,7 @@ except Exception as e:
     st.code(traceback.format_exc())
 
 
+st.header("Battle Arena")
 # Arena Background
 import base64
 import os
