@@ -24,6 +24,10 @@ st.markdown("""
 
 if "splash_shown" not in st.session_state:
     st.session_state.splash_shown = False
+if "battle_active" not in st.session_state:
+    st.session_state.battle_active = False
+if "game_over" not in st.session_state:
+    st.session_state.game_over = False
 
 if not st.session_state.splash_shown:
     splash_ph = st.empty()
