@@ -494,54 +494,28 @@ with scol2:
 # 4. Stat Comparison
 # -----------------
 st.header("4. Head-to-Head Comparison")
+stat_df = pd.DataFrame([
+    {"pokemon": pkmn1["name"].capitalize(), **pkmn1["stats"]},
+    {"pokemon": pkmn2["name"].capitalize(), **pkmn2["stats"]}
+])
+melted_stats = stat_df.melt(id_vars="pokemon", var_name="stat", value_name="value")
+fig_stats = px.bar(
+    melted_stats,
+    x="stat", y="value", color="pokemon", barmode="group",
+    color_discrete_sequence=["#0A84FF", "#FF453A"]
+)
+fig_stats.update_layout(
+    plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+    font_color="#F5F5F7", margin=dict(l=20, r=20, t=20, b=20)
+)
+st.plotly_chart(fig_stats, use_container_width=True)
 
 if not st.session_state.battle_active:
-    # Full interactive chart — shown during selection phase
-    stat_df = pd.DataFrame([
-        {"pokemon": pkmn1["name"].capitalize(), **pkmn1["stats"]},
-        {"pokemon": pkmn2["name"].capitalize(), **pkmn2["stats"]}
-    ])
-    melted_stats = stat_df.melt(id_vars="pokemon", var_name="stat", value_name="value")
-    fig_stats = px.bar(
-        melted_stats,
-        x="stat", y="value", color="pokemon", barmode="group",
-        color_discrete_sequence=["#0A84FF", "#FF453A"]
-    )
-    fig_stats.update_layout(
-        plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-        font_color="#F5F5F7", margin=dict(l=20, r=20, t=20, b=20)
-    )
-    st.plotly_chart(fig_stats, use_container_width=True)
-
     if st.button("🚀 INITIATE COMBAT", type="primary", use_container_width=True):
         st.session_state.battle_active = True
         st.rerun()
-else:
-    # Lightweight static summary during battle — no plotly re-render = no flash
-    s1, s2 = pkmn1["stats"], pkmn2["stats"]
-    stat_keys = ["hp", "attack", "defense", "special-attack", "special-defense", "speed"]
-    stat_labels = ["HP", "ATK", "DEF", "SP.ATK", "SP.DEF", "SPD"]
-    rows = "".join(
-        f"<tr><td style='padding:2px 10px;color:#0A84FF;font-weight:bold'>{s1[k]}</td>"
-        f"<td style='padding:2px 14px;text-align:center;color:#888;font-size:11px'>{lbl}</td>"
-        f"<td style='padding:2px 10px;color:#FF453A;font-weight:bold;text-align:right'>{s2[k]}</td></tr>"
-        for k, lbl in zip(stat_keys, stat_labels)
-    )
-    st.markdown(
-        f"<table style='font-family:Nunito,sans-serif;font-size:13px;border-collapse:collapse'>"
-        f"<tr><th style='color:#0A84FF'>{pkmn1['name'].capitalize()}</th>"
-        f"<th style='color:#888;font-size:11px'>&nbsp;</th>"
-        f"<th style='color:#FF453A;text-align:right'>{pkmn2['name'].capitalize()}</th></tr>"
-        f"{rows}</table>",
-        unsafe_allow_html=True
-    )
-
 
 st.markdown("---")
-
-# Placeholders for battle arena and results — always exist, only one is populated at a time
-battle_arena_zone = st.empty()
-results_summary_zone = st.empty()
 
 def init_battle(p1, p2):
     """Initialize or reset battle state for the given Pokémon."""
@@ -783,16 +757,17 @@ div[data-testid="stHorizontalBlock"]:has(.hud-sentinel) button p::first-line {
 </style>
 """, unsafe_allow_html=True)
 # --- BATTLE AREA (ARENA + HUD) ---
-# Placeholder to allow in-place UI updates without a total page st.rerun() flicker
-# --- PLACEHOLDERS FOR ABSOLUTE ISOLATION ---
-battle_arena_zone = st.empty()
-results_summary_zone = st.empty()
+# @st.fragment ensures only this section reruns on button press — sections 1-4 stay frozen
+@st.fragment
+def battle_section():
+    if not st.session_state.battle_active:
+        return
 
-if st.session_state.battle_active:
+    battle_arena_zone = st.empty()
+    results_summary_zone = st.empty()
+
     if not st.session_state.game_over:
-        # Clear Results zone to prevent ghosting during combat turns
-        results_summary_zone.empty() 
-        
+        results_summary_zone.empty()
         with battle_arena_zone.container():
             arena_view = st.empty()
             arena_view.markdown(get_arena_html(st.session_state.hp1, st.session_state.hp2), unsafe_allow_html=True)
@@ -879,7 +854,7 @@ if st.session_state.battle_active:
                     st.session_state.latest_action = final_msg
                     notification_box.markdown(get_dialogue_html(final_msg), unsafe_allow_html=True)
                     time.sleep(1.2)
-                    st.rerun() 
+                    st.rerun()  # Full rerun to show results screen
                 else:
                     st.session_state.latest_action = f"What will {pkmn1['name'].capitalize()} do?"
                     notification_box.markdown(get_dialogue_html(st.session_state.latest_action), unsafe_allow_html=True)
@@ -903,9 +878,7 @@ div[data-testid="column"]:nth-child(2) button:has(p:contains("{move['name'].capi
                             execute_move(move)
 
     else:
-        # Clear Arena zone to ensure Results screen is localized and clean
-        battle_arena_zone.empty() 
-        
+        battle_arena_zone.empty()
         with results_summary_zone.container():
             st.markdown("### Battle Log Output")
             col_reset, col_spacer = st.columns([1, 4])
@@ -922,12 +895,13 @@ div[data-testid="column"]:nth-child(2) button:has(p:contains("{move['name'].capi
                     st.markdown("**Battle Log**")
                     log_df = pd.DataFrame(st.session_state.battle_log)
                     st.dataframe(log_df, use_container_width=True)
-                    
                 with chart_col:
                     st.markdown("**HP Progression (Tidy Format)**")
                     hp_df = pd.DataFrame(st.session_state.hp_history)
-                    fig_hp = px.line(hp_df, x="Round", y="HP", color="Pokemon", markers=True, 
-                                     title="HP Drainage Over Time", 
+                    fig_hp = px.line(hp_df, x="Round", y="HP", color="Pokemon", markers=True,
+                                     title="HP Drainage Over Time",
                                      color_discrete_map={pkmn1["name"].capitalize(): "#3296ff", pkmn2["name"].capitalize(): "#ff4b4b"})
                     fig_hp.update_layout(height=350, margin=dict(l=10, r=10, t=40, b=10))
                     st.plotly_chart(fig_hp, use_container_width=True)
+
+battle_section()
