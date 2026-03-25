@@ -442,19 +442,20 @@ def extract_pokemon_data(data):
         "moves": [m["move"]["name"] for m in data["moves"]]
     }
 
-# --- SELECTION & DATA (Must be top-level for combat visibility) ---
+# -----------------
+# 1. Selection
+# -----------------
+st.header("1. Choose Your Pokemon")
+col1, col2 = st.columns(2)
+
 pokemon_list = fetch_pokemon_list()
 p1_idx = pokemon_list.index("Mewtwo") if "Mewtwo" in pokemon_list else 0
 p2_idx = pokemon_list.index("Venusaur") if "Venusaur" in pokemon_list else 1
 
-# If battle is active, prioritize names from session_state to avoid stale selectbox values
-if st.session_state.get("battle_active"):
-    pkmn1_name = st.session_state.get("active_p1_name", pokemon_list[p1_idx]).capitalize()
-    pkmn2_name = st.session_state.get("active_p2_name", pokemon_list[p2_idx]).capitalize()
-else:
-    # Need to keep these at top level for first run or reset
-    pkmn1_name = pokemon_list[p1_idx]
-    pkmn2_name = pokemon_list[p2_idx]
+with col1:
+    pkmn1_name = st.selectbox("Player 1", options=pokemon_list, index=p1_idx)
+with col2:
+    pkmn2_name = st.selectbox("Player 2", options=pokemon_list, index=p2_idx)
 
 # Always fetch and extract data for current selections
 data1_raw = fetch_pokemon(pkmn1_name)
@@ -463,77 +464,64 @@ data2_raw = fetch_pokemon(pkmn2_name)
 if not data1_raw or not data2_raw:
     st.error("Could not fetch data for one or both Pokemon. Please check the names and try again.")
     st.stop()
-    
+
 pkmn1 = extract_pokemon_data(data1_raw)
 pkmn2 = extract_pokemon_data(data2_raw)
 
-# --- SELECTION AREA UI (Hard-cleared during battle) ---
-selection_zone = st.empty()
+# -----------------
+# 2. Display Stats
+# -----------------
+st.header("2. Pokémon Stats")
+scol1, scol2 = st.columns(2)
 
+def render_pokemon_card(pkmn):
+    with st.container():
+        st.subheader(pkmn["name"].capitalize())
+        col_space1, col_img, col_space2 = st.columns([1,2,1])
+        if pkmn["sprite"]:
+            with col_img:
+                st.markdown(f'<img src="{pkmn["sprite"]}" style="width:100%; max-width:150px; display:block; margin:auto;" />', unsafe_allow_html=True)
+        badges_html = " ".join([get_type_badge(t) for t in pkmn['types']])
+        st.markdown(f"**Types:** {badges_html}", unsafe_allow_html=True)
+        st.caption(f"**HP** {pkmn['stats']['hp']} · **ATT** {pkmn['stats']['attack']} · **DEF** {pkmn['stats']['defense']} · **SPA** {pkmn['stats']['special-attack']} · **SPD** {pkmn['stats']['special-defense']} · **SPE** {pkmn['stats']['speed']}")
+
+with scol1:
+    render_pokemon_card(pkmn1)
+with scol2:
+    render_pokemon_card(pkmn2)
+
+# -----------------
+# 4. Stat Comparison
+# -----------------
+st.header("4. Head-to-Head Comparison")
+stat_df = pd.DataFrame([
+    {"pokemon": pkmn1["name"].capitalize(), **pkmn1["stats"]},
+    {"pokemon": pkmn2["name"].capitalize(), **pkmn2["stats"]}
+])
+melted_stats = stat_df.melt(id_vars="pokemon", var_name="stat", value_name="value")
+
+fig_stats = px.bar(
+    melted_stats,
+    x="stat", y="value", color="pokemon", barmode="group",
+    color_discrete_sequence=["#0A84FF", "#FF453A"]
+)
+fig_stats.update_layout(
+    plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+    font_color="#F5F5F7", margin=dict(l=20, r=20, t=20, b=20)
+)
+st.plotly_chart(fig_stats, use_container_width=True)
+
+# Start Battle Button (only show if not already in battle)
 if not st.session_state.battle_active:
-    with selection_zone.container():
-        st.header("1. Choose Your Pokemon")
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # Note: Selectbox value is current, but we need the names variable above to be consistent
-            pkmn1_name = st.selectbox("Player 1", options=pokemon_list, index=p1_idx, key="sel_p1")
-        with col2:
-            pkmn2_name = st.selectbox("Player 2", options=pokemon_list, index=p2_idx, key="sel_p2")
-            
-        # -----------------
-        # 2. Display Stats
-        # -----------------
-        st.header("2. Pokémon Stats")
-        scol1, scol2 = st.columns(2)
-        
-        def render_pokemon_card(pkmn):
-            with st.container():
-                st.subheader(pkmn["name"].capitalize())
-                col_space1, col_img, col_space2 = st.columns([1,2,1])
-                if pkmn["sprite"]:
-                    with col_img:
-                        st.markdown(f'<img src="{pkmn["sprite"]}" style="width:100%; max-width:150px; display:block; margin:auto;" />', unsafe_allow_html=True)
-                badges_html = " ".join([get_type_badge(t) for t in pkmn['types']])
-                st.markdown(f"**Types:** {badges_html}", unsafe_allow_html=True)
-                st.caption(f"**HP** {pkmn['stats']['hp']} · **ATT** {pkmn['stats']['attack']} · **DEF** {pkmn['stats']['defense']} · **SPA** {pkmn['stats']['special-attack']} · **SPD** {pkmn['stats']['special-defense']} · **SPE** {pkmn['stats']['speed']}")
-        
-        with scol1:
-            render_pokemon_card(pkmn1)
-        with scol2:
-            render_pokemon_card(pkmn2)
-            
-        # -----------------
-        # 4. Stat Comparison
-        # -----------------
-        st.header("4. Head-to-Head Comparison")
-        stat_df = pd.DataFrame([
-            {"pokemon": pkmn1["name"].capitalize(), **pkmn1["stats"]},
-            {"pokemon": pkmn2["name"].capitalize(), **pkmn2["stats"]}
-        ])
-        melted_stats = stat_df.melt(id_vars="pokemon", var_name="stat", value_name="value")
-        
-        # Theming Plotly to match Apple dark aesthetics
-        fig_stats = px.bar(
-            melted_stats, 
-            x="stat", y="value", color="pokemon", barmode="group",
-            color_discrete_sequence=["#0A84FF", "#FF453A"] # Apple blue and red
-        )
-        fig_stats.update_layout(height=400, plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font_color="#F5F5F7", margin=dict(l=20, r=20, t=20, b=20))
-        st.plotly_chart(fig_stats, use_container_width=True)
-        
-        # Start Battle Button
-        if st.button("🚀 INITIATE COMBAT", type="primary", use_container_width=True):
-            st.session_state.battle_active = True
-            st.rerun()
+    if st.button("🚀 INITIATE COMBAT", type="primary", use_container_width=True):
+        st.session_state.battle_active = True
+        st.rerun()
 
-    # Placeholders for combat area (kept empty in selection phase)
-    battle_arena_zone = st.empty()
-    results_summary_zone = st.empty()
-    
-else:
-    # Battle is active: Hard-clear the selection zone to ensure no ghosting
-    selection_zone.empty()
+st.markdown("---")
+
+# Placeholders for battle arena and results — always exist, only one is populated at a time
+battle_arena_zone = st.empty()
+results_summary_zone = st.empty()
 
 def init_battle(p1, p2):
     """Initialize or reset battle state for the given Pokémon."""
