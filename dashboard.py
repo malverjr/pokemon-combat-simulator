@@ -190,11 +190,17 @@ st.markdown("""
     }
     
     @keyframes faint {
-        0% { opacity: 1; transform: translateY(0); }
-        100% { opacity: 0; transform: translateY(100px); }
+        0% { opacity: 1; transform: translateY(0); filter: grayscale(0); }
+        100% { opacity: 0; transform: translateY(120px) scale(0.85); filter: grayscale(1); }
     }
     .faint {
-        animation: faint 0.8s ease-in forwards !important;
+        animation: faint 0.9s ease-in forwards !important;
+        pointer-events: none !important;
+    }
+    .faint img {
+        filter: grayscale(1) brightness(0.5);
+        opacity: 0;
+        transition: opacity 1s ease-in !important;
     }
     
     .sprite-player, .sprite-opponent {
