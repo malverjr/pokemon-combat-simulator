@@ -615,10 +615,7 @@ def get_arena_html(curr_hp1, curr_hp2, p1_cls="img-p1", p2_cls="img-p2"):
 </div>
 </div>"""
 
-# Render the arena (MUST be after get_arena_html is defined)
-arena_view = st.empty()
-arena_view.markdown(get_arena_html(st.session_state.hp1, st.session_state.hp2), unsafe_allow_html=True)
-
+# Define the dialogue helper
 def get_dialogue_html(msg):
     return f"""
     <div style="
