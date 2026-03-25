@@ -339,7 +339,7 @@ def get_four_damaging_moves(pokemon_moves):
                 valid.append({
                     "name": m_data["name"],
                     "power": m_data["power"],
-                    "accuracy": m_data.get("accuracy", 100),
+                    "accuracy": m_data.get("accuracy") if m_data.get("accuracy") is not None else 100,
                     "type": m_data["type"]["name"],
                     "damage_class": m_data["damage_class"]["name"],
                     "damage_relations": type_rel["damage_relations"]
