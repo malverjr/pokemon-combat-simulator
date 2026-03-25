@@ -1,6 +1,6 @@
 # ⚔️ Pokemon Combat Simulator
 
-This repository contains our perfect 10/10 submission for the Pokemon Combat Simulator group assignment. We've ensured every requirement on the grading rubric is fully met and exceeded.
+This repository contains our submission for the Pokemon Combat Simulator group assignment. It features a complete implementation of all requirements, including API data fetching, stat visualization, and a robust combat engine.
 
 ## 🔗 Streamlit App URL
 [Click here to view the deployed Streamlit Dashboard](https://your-streamlit-app-link-placeholder.streamlit.app)
