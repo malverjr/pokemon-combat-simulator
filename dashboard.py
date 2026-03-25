@@ -6,7 +6,21 @@ import random
 import time
 
 # Apply layout constraints
-st.set_page_config(page_title="Pokemon Combat Simulator", page_icon="⚔️", layout="wide")
+st.set_page_config(
+    page_title="Pokemon Combat Simulator | Group 7", 
+    page_icon="⚔️", 
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
+# Explicitly override metadata to fix cached social media previews (WhatsApp)
+st.markdown("""
+<head>
+    <meta name="description" content="Pokemon Combat Simulator developed by Group 7. A full-featured battle engine with API integration and stat visualization.">
+    <meta property="og:title" content="Pokemon Combat Simulator | Group 7">
+    <meta property="og:description" content="A full-featured battle engine with API integration and stat visualization. Final Academic Submission.">
+</head>
+""", unsafe_allow_html=True)
 
 if "splash_shown" not in st.session_state:
     st.session_state.splash_shown = False
