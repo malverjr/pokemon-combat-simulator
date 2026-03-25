@@ -893,6 +893,10 @@ else:
                 st.session_state.latest_action = f"**Your {pkmn1['name'].capitalize()} fainted! You blacked out!**"
             else:
                 st.session_state.latest_action = f"**Enemy {pkmn2['name'].capitalize()} fainted! You won!**"
+            
+            # Auto-rerun after a short delay to show results automatically
+            time.sleep(1.2) # Allow for 0.9s faint animation to complete
+            st.rerun()
         else:
             st.session_state.latest_action = f"What will {pkmn1['name'].capitalize()} do?"
     # buttons are styled by the hud-sentinel CSS block injected above
