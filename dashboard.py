@@ -794,7 +794,7 @@ else:
             notification_box = st.empty()
             notification_box.markdown(get_dialogue_html(st.session_state.latest_action), unsafe_allow_html=True)
             
-        btn_grid_ph = hud_cols[1].empty()
+        move_btn_ph = hud_cols[1].empty() # Corrected: move_btn_ph defined here
             
         def execute_move(p1_move):
             import time
