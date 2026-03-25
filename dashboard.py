@@ -526,7 +526,7 @@ st.header("5. Battle Arena")
 
 import base64
 import os
-bg_path = "/Users/malver/Downloads/group_assignment/arena_bg.jpg"
+bg_path = "arena_bg.jpg" # Using relative path for Streamlit Cloud compatibility
 bg_inline = ""
 if os.path.exists(bg_path):
     with open(bg_path, "rb") as image_file:
