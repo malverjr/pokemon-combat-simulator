@@ -757,34 +757,12 @@ div[data-testid="stHorizontalBlock"]:has(.hud-sentinel) button p::first-line {
 """, unsafe_allow_html=True)
 # --- BATTLE AREA (ARENA + HUD) ---
 # Placeholder to allow in-place UI updates without a total page st.rerun() flicker
-battle_ui_ph = st.empty()
+# --- PLACEHOLDERS FOR ABSOLUTE ISOLATION ---
+battle_arena_zone = st.empty()
+results_summary_zone = st.empty()
 
-if st.session_state.game_over:
-    with battle_ui_ph.container():
-        st.markdown("### Battle Log Output")
-        col_reset, col_spacer = st.columns([1, 4])
-        with col_reset:
-            if st.button("Reset Battle", type="primary", use_container_width=True, key="post_battle_reset_top"):
-                if "battle_active" in st.session_state:
-                    del st.session_state["battle_active"]
-                st.rerun()
-                
-        if st.session_state.battle_log:
-            st.subheader("📝 Battle Results & Analysis")
-            log_col, chart_col = st.columns([1, 1])
-            with log_col:
-                st.markdown("**Battle Log**")
-                log_df = pd.DataFrame(st.session_state.battle_log)
-                st.dataframe(log_df, use_container_width=True)
-                
-            with chart_col:
-                st.markdown("**HP Progression (Tidy Format)**")
-                hp_df = pd.DataFrame(st.session_state.hp_history)
-                fig_hp = px.line(hp_df, x="Round", y="HP", color="Pokemon", markers=True, title="HP Drainage Over Time", color_discrete_map={pkmn1["name"].capitalize(): "#3296ff", pkmn2["name"].capitalize(): "#ff4b4b"})
-                fig_hp.update_layout(height=350, margin=dict(l=10, r=10, t=40, b=10))
-                st.plotly_chart(fig_hp, use_container_width=True)
-else:
-    with battle_ui_ph.container():
+if not st.session_state.game_over:
+    with battle_arena_zone.container():
         arena_view = st.empty()
         arena_view.markdown(get_arena_html(st.session_state.hp1, st.session_state.hp2), unsafe_allow_html=True)
         
@@ -794,7 +772,7 @@ else:
             notification_box = st.empty()
             notification_box.markdown(get_dialogue_html(st.session_state.latest_action), unsafe_allow_html=True)
             
-        move_btn_ph = hud_cols[1].empty() # Corrected: move_btn_ph defined here
+        move_btn_ph = hud_cols[1].empty()
             
         def execute_move(p1_move):
             import time
@@ -870,7 +848,7 @@ else:
                 st.session_state.latest_action = final_msg
                 notification_box.markdown(get_dialogue_html(final_msg), unsafe_allow_html=True)
                 time.sleep(1.2)
-                st.rerun() # Standard rerun works best if all CSS/Config is at the top
+                st.rerun() 
             else:
                 st.session_state.latest_action = f"What will {pkmn1['name'].capitalize()} do?"
                 notification_box.markdown(get_dialogue_html(st.session_state.latest_action), unsafe_allow_html=True)
@@ -892,3 +870,31 @@ div[data-testid="column"]:nth-child(2) button:has(p:contains("{move['name'].capi
                     btn_label = f"{move['name'].upper()}\n{move['type'].capitalize()} • {move['power']} Pw"
                     if st.button(btn_label, key=f"btn_m_{i}", use_container_width=True):
                         execute_move(move)
+
+else:
+    # --- RENDER RESULTS (At the very bottom to avoid 'Ghosting'/Flicker during turn restarts) ---
+    with results_summary_zone.container():
+        st.markdown("### Battle Log Output")
+        col_reset, col_spacer = st.columns([1, 4])
+        with col_reset:
+            if st.button("Reset Battle", type="primary", use_container_width=True, key="reset_btn_final"):
+                if "battle_active" in st.session_state:
+                    del st.session_state["battle_active"]
+                st.rerun()
+                
+        if st.session_state.battle_log:
+            st.subheader("📝 Battle Results & Analysis")
+            log_col, chart_col = st.columns([1, 1])
+            with log_col:
+                st.markdown("**Battle Log**")
+                log_df = pd.DataFrame(st.session_state.battle_log)
+                st.dataframe(log_df, use_container_width=True)
+                
+            with chart_col:
+                st.markdown("**HP Progression (Tidy Format)**")
+                hp_df = pd.DataFrame(st.session_state.hp_history)
+                fig_hp = px.line(hp_df, x="Round", y="HP", color="Pokemon", markers=True, 
+                                 title="HP Drainage Over Time", 
+                                 color_discrete_map={pkmn1["name"].capitalize(): "#3296ff", pkmn2["name"].capitalize(): "#ff4b4b"})
+                fig_hp.update_layout(height=350, margin=dict(l=10, r=10, t=40, b=10))
+                st.plotly_chart(fig_hp, use_container_width=True)
