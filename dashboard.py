@@ -199,7 +199,11 @@ st.markdown("""
     }
     .faint img {
         filter: grayscale(1) brightness(0.5);
-        opacity: 0;
+        opacity: 0 !important;
+        transition: opacity 1s ease-in !important;
+    }
+    .faint .shadow {
+        filter: grayscale(1) brightness(0.5);
         transition: opacity 1s ease-in !important;
     }
     
@@ -759,25 +763,16 @@ div[data-testid="stHorizontalBlock"]:has(.hud-sentinel) button p::first-line {
 </style>
 """, unsafe_allow_html=True)
 
-hud_cols = st.columns([1.5, 1])
-
-with hud_cols[0]:
-    st.markdown('<div class="hud-sentinel"></div>', unsafe_allow_html=True)
-    notification_box = st.empty()
-    notification_box.markdown(get_dialogue_html(st.session_state.latest_action), unsafe_allow_html=True)
-
-with hud_cols[1]:
-    btn_placeholder = st.empty()  # reserves space; buttons added later inside this col
-btn_cols = None  # created later
-
-if st.session_state.game_over:
-    if st.button("Reset Battle", type="primary"):
-        # Deleting the check key forces a fresh init_battle on the next rerun
-        if "battle_active" in st.session_state:
-            del st.session_state["battle_active"]
-        st.rerun()
-        
+def render_battle_results():
     st.markdown("### Battle Log Output")
+    
+    col_reset, col_spacer = st.columns([1, 4])
+    with col_reset:
+        if st.button("Reset Battle", type="primary", use_container_width=True):
+            if "battle_active" in st.session_state:
+                del st.session_state["battle_active"]
+            st.rerun()
+            
     if st.session_state.battle_log:
         st.subheader("📝 Battle Results & Analysis")
         log_col, chart_col = st.columns([1, 1])
@@ -799,127 +794,6 @@ if st.session_state.game_over:
             )
             fig_hp.update_layout(height=350, margin=dict(l=10, r=10, t=40, b=10))
             st.plotly_chart(fig_hp, use_container_width=True)
-else:
-    
-    def execute_move(p1_move):
-        import time
-        if not st.session_state.p2_moves: return
-            
-        p2_move = random.choice(st.session_state.p2_moves)
-        speed1 = pkmn1["stats"]["speed"]
-        speed2 = pkmn2["stats"]["speed"]
-        
-        if speed1 > speed2 or (speed1 == speed2 and random.choice([True, False])):
-            turn_order = [(1, pkmn1, pkmn2, p1_move), (2, pkmn2, pkmn1, p2_move)]
-        else:
-            turn_order = [(2, pkmn2, pkmn1, p2_move), (1, pkmn1, pkmn2, p1_move)]
-            
-        curr_hp1 = st.session_state.hp1
-        curr_hp2 = st.session_state.hp2
-        
-        for idx, attacker, defender, move in turn_order:
-            if idx == 1 and curr_hp1 <= 0: continue
-            if idx == 2 and curr_hp2 <= 0: continue
-            
-            dr = move["damage_relations"]
-            eff = 1.0
-            for t in defender["types"]:
-                if t in [x["name"] for x in dr["double_damage_to"]]: eff *= 2.0
-                elif t in [x["name"] for x in dr["half_damage_to"]]: eff *= 0.5
-                elif t in [x["name"] for x in dr["no_damage_to"]]: eff *= 0.0
-                
-            att_val = attacker["stats"]["attack"] if move["damage_class"] == "physical" else attacker["stats"]["special-attack"]
-            def_val = defender["stats"]["defense"] if move["damage_class"] == "physical" else defender["stats"]["special-defense"]
-            
-            dmg = 0
-            if random.random() < (move["accuracy"] / 100.0):
-                dmg = max(1, int(((2 * 50 / 5 + 2) * move["power"] * (att_val / def_val) / 50 + 2) * eff))
-            
-            # Attack Message setup
-            prefix = "Enemy " if idx == 2 else ""
-            msg = f"{prefix}**{attacker['name'].capitalize()}** used {move['name'].capitalize()}! "
-            if dmg == 0: msg += "It missed!"
-            else:
-                if eff > 1: msg += "It's super effective!"
-                elif eff < 1 and eff > 0: msg += "It's not very effective..."
-                elif eff == 0: msg += "It had no effect!"
-                
-            notification_box.markdown(get_dialogue_html(msg), unsafe_allow_html=True)
-            
-            # Animate Attack Dash
-            if idx == 1:
-                arena_view.markdown(get_arena_html(curr_hp1, curr_hp2, p1_cls="img-p1 attack", p2_cls="img-p2"), unsafe_allow_html=True)
-            else:
-                arena_view.markdown(get_arena_html(curr_hp1, curr_hp2, p1_cls="img-p1", p2_cls="img-p2 attack"), unsafe_allow_html=True)
-            time.sleep(0.4)
-            
-            # Animate Hit Reception & HP Loss
-            if idx == 1:
-                curr_hp2 = max(0, curr_hp2 - dmg)
-                if dmg > 0: arena_view.markdown(get_arena_html(curr_hp1, curr_hp2, p1_cls="img-p1", p2_cls="img-p2 hit"), unsafe_allow_html=True)
-            else:
-                curr_hp1 = max(0, curr_hp1 - dmg)
-                if dmg > 0: arena_view.markdown(get_arena_html(curr_hp1, curr_hp2, p1_cls="img-p1 hit", p2_cls="img-p2"), unsafe_allow_html=True)
-            time.sleep(0.5)
-            
-            # Reset bounds smoothly
-            arena_view.markdown(get_arena_html(curr_hp1, curr_hp2), unsafe_allow_html=True)
-            time.sleep(0.5)
-            
-            st.session_state.battle_log.append({
-                "round": st.session_state.round_num,
-                "attacker": attacker["name"].capitalize(),
-                "move": move["name"].capitalize(),
-                "damage": dmg
-            })
-            
-            if curr_hp1 <= 0 or curr_hp2 <= 0:
-                st.session_state.game_over = True
-                break
-                
-        st.session_state.hp1 = curr_hp1
-        st.session_state.hp2 = curr_hp2
-        
-        # Capture tidy-format HP history for the line chart
-        st.session_state.hp_history.append({"Round": st.session_state.round_num, "Pokemon": pkmn1["name"].capitalize(), "HP": curr_hp1})
-        st.session_state.hp_history.append({"Round": st.session_state.round_num, "Pokemon": pkmn2["name"].capitalize(), "HP": curr_hp2})
-        
-        st.session_state.round_num += 1
-        
-        if st.session_state.game_over:
-            if curr_hp1 <= 0 and curr_hp2 <= 0:
-                st.session_state.latest_action = "**It's a draw!**"
-            elif curr_hp1 <= 0:
-                st.session_state.latest_action = f"**Your {pkmn1['name'].capitalize()} fainted! You blacked out!**"
-            else:
-                st.session_state.latest_action = f"**Enemy {pkmn2['name'].capitalize()} fainted! You won!**"
-            
-            # Auto-rerun after a short delay to show results automatically
-            time.sleep(1.2) # Allow for 0.9s faint animation to complete
-            st.rerun()
-        else:
-            st.session_state.latest_action = f"What will {pkmn1['name'].capitalize()} do?"
-    # buttons are styled by the hud-sentinel CSS block injected above
-    with hud_cols[1]:
-        btn_cols = st.columns(2)
-        for i, move in enumerate(st.session_state.p1_moves):
-            col = btn_cols[i % 2]
-            with col:
-                # Color coding based on type
-                m_type = move['type'].lower()
-                m_color = TYPE_COLORS.get(m_type, "#d8dde3")
-                
-                # Inject unique shadow/border for this specific button to show move type
-                st.markdown(f"""
-                <style>
-                div[data-testid="stHorizontalBlock"]:has(.hud-sentinel) button[key="btn_m_{i}"] {{
-                    border-left: 5px solid {m_color} !important;
-                    box-shadow: 
-                        0 4px 6px rgba(0,0,0,0.04),
-                        inset 0 1px 0 rgba(255,255,255,0.9),
-                        -2px 0 10px {m_color}20 !important;
-                }}
-                div[data-testid="stHorizontalBlock"]:has(.hud-sentinel) button[key="btn_m_{i}"]:hover {{
                     box-shadow: 
                         0 8px 15px rgba(0,0,0,0.06),
                         -3px 0 15px {m_color}40 !important;
