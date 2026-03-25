@@ -5,5 +5,6 @@ __pycache__/
 *.egg-info/
 dist/
 build/
-arena_bg.jpg
+# Allowing battle backgrounds
+# arena_bg.jpg (Removed from ignore)
 deploy/
