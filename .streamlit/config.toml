@@ -1,7 +1,7 @@
 [theme]
-# Apple Pro Dark Theme Options
+# Authentic Nintendo Switch Base Theme
 primaryColor = "#0A84FF"
-backgroundColor = "#000000"
-secondaryBackgroundColor = "#1C1C1E"
-textColor = "#F5F5F7"
+backgroundColor = "#e8f4f8"
+secondaryBackgroundColor = "#ffffff"
+textColor = "#2b2b2b"
 font = "sans serif"
