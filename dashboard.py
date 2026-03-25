@@ -494,28 +494,48 @@ with scol2:
 # 4. Stat Comparison
 # -----------------
 st.header("4. Head-to-Head Comparison")
-stat_df = pd.DataFrame([
-    {"pokemon": pkmn1["name"].capitalize(), **pkmn1["stats"]},
-    {"pokemon": pkmn2["name"].capitalize(), **pkmn2["stats"]}
-])
-melted_stats = stat_df.melt(id_vars="pokemon", var_name="stat", value_name="value")
 
-fig_stats = px.bar(
-    melted_stats,
-    x="stat", y="value", color="pokemon", barmode="group",
-    color_discrete_sequence=["#0A84FF", "#FF453A"]
-)
-fig_stats.update_layout(
-    plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-    font_color="#F5F5F7", margin=dict(l=20, r=20, t=20, b=20)
-)
-st.plotly_chart(fig_stats, use_container_width=True)
-
-# Start Battle Button (only show if not already in battle)
 if not st.session_state.battle_active:
+    # Full interactive chart — shown during selection phase
+    stat_df = pd.DataFrame([
+        {"pokemon": pkmn1["name"].capitalize(), **pkmn1["stats"]},
+        {"pokemon": pkmn2["name"].capitalize(), **pkmn2["stats"]}
+    ])
+    melted_stats = stat_df.melt(id_vars="pokemon", var_name="stat", value_name="value")
+    fig_stats = px.bar(
+        melted_stats,
+        x="stat", y="value", color="pokemon", barmode="group",
+        color_discrete_sequence=["#0A84FF", "#FF453A"]
+    )
+    fig_stats.update_layout(
+        plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+        font_color="#F5F5F7", margin=dict(l=20, r=20, t=20, b=20)
+    )
+    st.plotly_chart(fig_stats, use_container_width=True)
+
     if st.button("🚀 INITIATE COMBAT", type="primary", use_container_width=True):
         st.session_state.battle_active = True
         st.rerun()
+else:
+    # Lightweight static summary during battle — no plotly re-render = no flash
+    s1, s2 = pkmn1["stats"], pkmn2["stats"]
+    stat_keys = ["hp", "attack", "defense", "special-attack", "special-defense", "speed"]
+    stat_labels = ["HP", "ATK", "DEF", "SP.ATK", "SP.DEF", "SPD"]
+    rows = "".join(
+        f"<tr><td style='padding:2px 10px;color:#0A84FF;font-weight:bold'>{s1[k]}</td>"
+        f"<td style='padding:2px 14px;text-align:center;color:#888;font-size:11px'>{lbl}</td>"
+        f"<td style='padding:2px 10px;color:#FF453A;font-weight:bold;text-align:right'>{s2[k]}</td></tr>"
+        for k, lbl in zip(stat_keys, stat_labels)
+    )
+    st.markdown(
+        f"<table style='font-family:Nunito,sans-serif;font-size:13px;border-collapse:collapse'>"
+        f"<tr><th style='color:#0A84FF'>{pkmn1['name'].capitalize()}</th>"
+        f"<th style='color:#888;font-size:11px'>&nbsp;</th>"
+        f"<th style='color:#FF453A;text-align:right'>{pkmn2['name'].capitalize()}</th></tr>"
+        f"{rows}</table>",
+        unsafe_allow_html=True
+    )
+
 
 st.markdown("---")
 
