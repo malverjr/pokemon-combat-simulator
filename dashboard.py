@@ -867,33 +867,15 @@ else:
                 if curr_hp1 <= 0 and curr_hp2 <= 0: final_msg = "**It's a draw!**"
                 elif curr_hp1 <= 0: final_msg = f"**Your {pkmn1['name'].capitalize()} fainted! You blacked out!**"
                 else: final_msg = f"**Enemy {pkmn2['name'].capitalize()} fainted! You won!**"
-                
                 st.session_state.latest_action = final_msg
                 notification_box.markdown(get_dialogue_html(final_msg), unsafe_allow_html=True)
-                time.sleep(1.2) # Allow for 0.9s faint animation
-                with battle_ui_ph.container():
-                    st.markdown("### Battle Log Output")
-                    col_reset, col_spacer = st.columns([1, 4])
-                    with col_reset:
-                        if st.button("Reset Battle", type="primary", use_container_width=True, key="post_battle_reset"):
-                            if "battle_active" in st.session_state: del st.session_state["battle_active"]
-                            st.rerun()
-                    if st.session_state.battle_log:
-                        st.subheader("📝 Battle Results & Analysis")
-                        log_col, chart_col = st.columns([1, 1])
-                        with log_col:
-                            log_df = pd.DataFrame(st.session_state.battle_log)
-                            st.dataframe(log_df, use_container_width=True)
-                        with chart_col:
-                            hp_df = pd.DataFrame(st.session_state.hp_history)
-                            fig_hp = px.line(hp_df, x="Round", y="HP", color="Pokemon", markers=True, title="HP Drainage Over Time", color_discrete_map={pkmn1["name"].capitalize(): "#3296ff", pkmn2["name"].capitalize(): "#ff4b4b"})
-                            fig_hp.update_layout(height=350, margin=dict(l=10, r=10, t=40, b=10))
-                            st.plotly_chart(fig_hp, use_container_width=True)
+                time.sleep(1.2)
+                st.rerun() # Standard rerun works best if all CSS/Config is at the top
             else:
                 st.session_state.latest_action = f"What will {pkmn1['name'].capitalize()} do?"
                 notification_box.markdown(get_dialogue_html(st.session_state.latest_action), unsafe_allow_html=True)
 
-        with btn_grid_ph.container():
+        with move_btn_ph.container():
             btn_cols = st.columns(2)
             for i, move in enumerate(st.session_state.p1_moves):
                 col = btn_cols[i % 2]
@@ -910,4 +892,3 @@ div[data-testid="column"]:nth-child(2) button:has(p:contains("{move['name'].capi
                     btn_label = f"{move['name'].upper()}\n{move['type'].capitalize()} • {move['power']} Pw"
                     if st.button(btn_label, key=f"btn_m_{i}", use_container_width=True):
                         execute_move(move)
-
