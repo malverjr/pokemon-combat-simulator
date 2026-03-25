@@ -13,12 +13,12 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Explicitly override metadata to fix cached social media previews (WhatsApp)
+# Project Metadata
 st.markdown("""
 <head>
-    <meta name="description" content="Pokemon Combat Simulator developed by Group 7. A full-featured battle engine with API integration and stat visualization.">
+    <meta name="description" content="Pokemon Combat Simulator - Group 7 Project">
     <meta property="og:title" content="Pokemon Combat Simulator | Group 7">
-    <meta property="og:description" content="A full-featured battle engine with API integration and stat visualization. Final Academic Submission.">
+    <meta property="og:description" content="Pokemon battle engine with PokeAPI integration and stat visualization.">
 </head>
 """, unsafe_allow_html=True)
 
@@ -74,12 +74,12 @@ if not st.session_state.splash_shown:
     st.session_state.splash_shown = True
     st.rerun()
 
-# Inject Custom "Apple Pro" Premium CSS
+# Custom Styling
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap');
 
-    /* Nintendo Switch Game Global Variables */
+    /* Global styling */
     :root {
         --nintendo-bg: #e8f4f8; 
         --nintendo-card: #ffffff;
@@ -222,9 +222,7 @@ st.markdown("""
         border-radius: 12px 0 12px 0;
         padding: 8px 12px 8px 15px;
         box-shadow: 4px 4px 0px rgba(0,0,0,0.15);
-        z-index: 10;
-        min-width: 240px;
-        /* Blur background slightly so it doesn't clash with the hyper-detailed AI art */
+        /* HUD background styling */
         backdrop-filter: blur(5px);
         background: rgba(255,255,255,0.95);
     }
@@ -239,9 +237,7 @@ st.markdown("""
     .hp-text { background: #ff9800; color: white; font-size: 0.7rem; font-weight: 900; padding: 0 5px; border-radius: 8px 0 0 8px; margin-right: 4px; }
     .hp-bar-track { flex-grow: 1; background: #444; height: 10px; border-radius: 5px; position: relative; overflow: hidden; margin-right: 2px;}
     .hp-bar-fill { height: 100%; transition: width 0.4s cubic-bezier(0.1, 0.7, 0.1, 1), background-color 0.4s; }
-    .hp-numerical { text-align: right; font-weight: 800; font-size: 1.05rem; margin-top: 5px; letter-spacing: 0.5px; color: var(--nintendo-text); }
-
-    /* Constrain the 3D layer to exactly lap over the grass (620px), so bottom-anchored shadows and sprites don't drift into the 180px HUD tray below! */
+    /* Sprite Positioning */
     .sprites-layer { position: absolute; width: 100%; height: 620px; top: 0; left: 0; z-index: 5; pointer-events: none;}
     
     /* Enemy stands far back ATOP the Pokeball ring */
@@ -301,7 +297,7 @@ st.markdown("""
     }
     [data-testid="stNotification"] svg { display: none !important; }
     
-    /* Aggressively destroy Streamlit's native loading-state component dimming during intense animation executions */
+    /* Page display fixes */
     div, span, [data-testid="stVerticalBlock"], [class*="st-emotion-cache"] {
         opacity: 1 !important;
         transition: none !important;
@@ -351,7 +347,7 @@ def fetch_type(name):
 
 @st.cache_data
 def get_hd_sprite(name):
-    # Retrieve beautiful 3D model GIFs provided by the user's requested repository
+    # Fetch 3D GIFs from HD sprites repository
     url = f"https://raw.githubusercontent.com/Nackha1/Hd-sprites/master/{name.capitalize()}.gif"
     try:
         if requests.head(url).status_code == 200:
@@ -442,9 +438,7 @@ def extract_pokemon_data(data):
         "moves": [m["move"]["name"] for m in data["moves"]]
     }
 
-# -----------------
-# 1. Selection
-# -----------------
+# Pokemon Selection
 st.header("1. Choose Your Pokemon")
 col1, col2 = st.columns(2)
 
@@ -468,9 +462,7 @@ if not data1_raw or not data2_raw:
 pkmn1 = extract_pokemon_data(data1_raw)
 pkmn2 = extract_pokemon_data(data2_raw)
 
-# -----------------
-# 2. Display Stats
-# -----------------
+# Show Stats
 st.header("2. Pokémon Stats")
 scol1, scol2 = st.columns(2)
 
@@ -490,9 +482,7 @@ with scol1:
 with scol2:
     render_pokemon_card(pkmn2)
 
-# -----------------
-# 4. Stat Comparison
-# -----------------
+# Charts
 st.header("4. Head-to-Head Comparison")
 stat_df = pd.DataFrame([
     {"pokemon": pkmn1["name"].capitalize(), **pkmn1["stats"]},
@@ -527,7 +517,7 @@ def init_battle(p1, p2):
     st.session_state.latest_action = f"A wild {p2['name'].capitalize()} appeared! What will {p1['name'].capitalize()} do?"
     st.session_state.active_p1_name = p1["name"]
     st.session_state.active_p2_name = p2["name"]
-    # Tidy format history for Criterion 2 & 3
+    # HP history for charts
     st.session_state.hp_history = [
         {"Round": 0, "Pokemon": p1["name"].capitalize(), "HP": st.session_state.hp1},
         {"Round": 0, "Pokemon": p2["name"].capitalize(), "HP": st.session_state.hp2}
@@ -548,13 +538,11 @@ except Exception as e:
     st.error(f"Error evaluating auto-start: {e}")
     st.code(traceback.format_exc())
 
-# st.success("DEBUG: Reached section 5 start")
 
-st.header("5. Battle Arena")
-
+# Arena Background
 import base64
 import os
-bg_path = "arena_bg.jpg" # Using relative path for Streamlit Cloud compatibility
+bg_path = "arena_bg.jpg" 
 bg_inline = ""
 if os.path.exists(bg_path):
     with open(bg_path, "rb") as image_file:
@@ -752,8 +740,6 @@ div[data-testid="stHorizontalBlock"]:has(.hud-sentinel) button p::first-line {
 </style>
 """, unsafe_allow_html=True)
 # --- BATTLE AREA ---
-# arena_view, notification_box, hud defined at TOP LEVEL so they get stable IDs.
-# Only buttons live inside @st.fragment. execute_move closes over the top-level placeholders.
 
 if st.session_state.battle_active and not st.session_state.game_over:
     arena_view = st.empty()
@@ -871,7 +857,7 @@ elif st.session_state.battle_active and st.session_state.game_over:
             log_df = pd.DataFrame(st.session_state.battle_log)
             st.dataframe(log_df, use_container_width=True)
         with chart_col:
-            st.markdown("**HP Progression (Tidy Format)**")
+            st.markdown("**HP Progression (Round Breakdown)**")
             hp_df = pd.DataFrame(st.session_state.hp_history)
             fig_hp = px.line(hp_df, x="Round", y="HP", color="Pokemon", markers=True,
                              title="HP Drainage Over Time",
