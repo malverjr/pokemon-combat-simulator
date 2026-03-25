@@ -510,11 +510,6 @@ fig_stats.update_layout(
 )
 st.plotly_chart(fig_stats, use_container_width=True)
 
-if not st.session_state.battle_active:
-    if st.button("🚀 INITIATE COMBAT", type="primary", use_container_width=True):
-        st.session_state.battle_active = True
-        st.rerun()
-
 st.markdown("---")
 
 def init_battle(p1, p2):
@@ -866,8 +861,7 @@ elif st.session_state.battle_active and st.session_state.game_over:
     col_reset, col_spacer = st.columns([1, 4])
     with col_reset:
         if st.button("Reset Battle", type="primary", use_container_width=True, key="reset_btn_final"):
-            if "battle_active" in st.session_state:
-                del st.session_state["battle_active"]
+            init_battle(pkmn1, pkmn2)
             st.rerun()
     if st.session_state.battle_log:
         st.subheader("📝 Battle Results & Analysis")
