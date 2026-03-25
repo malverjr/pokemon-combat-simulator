@@ -775,104 +775,103 @@ def battle_section():
             notification_box.markdown(get_dialogue_html(st.session_state.latest_action), unsafe_allow_html=True)
             
         move_btn_ph = hud_cols[1].empty()
-
+        def execute_move(p1_move):
+            import time
+            if not st.session_state.p2_moves: return
+            p2_move = random.choice(st.session_state.p2_moves)
+            
+            speed1 = pkmn1["stats"]["speed"]
+            speed2 = pkmn2["stats"]["speed"]
+            if speed1 > speed2 or (speed1 == speed2 and random.choice([True, False])):
+                turn_order = [(1, pkmn1, pkmn2, p1_move), (2, pkmn2, pkmn1, p2_move)]
+            else:
+                turn_order = [(2, pkmn2, pkmn1, p2_move), (1, pkmn1, pkmn2, p1_move)]
                 
-            def execute_move(p1_move):
-                import time
-                if not st.session_state.p2_moves: return
-                p2_move = random.choice(st.session_state.p2_moves)
+            curr_hp1, curr_hp2 = st.session_state.hp1, st.session_state.hp2
+            
+            for idx, attacker, defender, move in turn_order:
+                if (idx == 1 and curr_hp1 <= 0) or (idx == 2 and curr_hp2 <= 0):
+                    continue
                 
-                speed1 = pkmn1["stats"]["speed"]
-                speed2 = pkmn2["stats"]["speed"]
-                if speed1 > speed2 or (speed1 == speed2 and random.choice([True, False])):
-                    turn_order = [(1, pkmn1, pkmn2, p1_move), (2, pkmn2, pkmn1, p2_move)]
+                dr = move["damage_relations"]
+                eff = 1.0
+                for t in defender["types"]:
+                    if t in [x["name"] for x in dr["double_damage_to"]]: eff *= 2.0
+                    elif t in [x["name"] for x in dr["half_damage_to"]]: eff *= 0.5
+                    elif t in [x["name"] for x in dr["no_damage_to"]]: eff *= 0.0
+                
+                att_val = attacker["stats"]["attack"] if move["damage_class"] == "physical" else attacker["stats"]["special-attack"]
+                def_val = defender["stats"]["defense"] if move["damage_class"] == "physical" else defender["stats"]["special-defense"]
+                
+                dmg = 0
+                if random.random() < (move["accuracy"] / 100.0):
+                    dmg = max(1, int(((2 * 50 / 5 + 2) * move["power"] * (att_val / def_val) / 50 + 2) * eff))
+                
+                prefix = "Enemy " if idx == 2 else ""
+                msg = f"{prefix}**{attacker['name'].capitalize()}** used {move['name'].capitalize()}! "
+                if dmg == 0: msg += "It missed!"
                 else:
-                    turn_order = [(2, pkmn2, pkmn1, p2_move), (1, pkmn1, pkmn2, p1_move)]
-                    
-                curr_hp1, curr_hp2 = st.session_state.hp1, st.session_state.hp2
+                    if eff > 1: msg += "It's super effective!"
+                    elif eff < 1 and eff > 0: msg += "It's not very effective..."
+                    elif eff == 0: msg += "It had no effect!"
                 
-                for idx, attacker, defender, move in turn_order:
-                    if (idx == 1 and curr_hp1 <= 0) or (idx == 2 and curr_hp2 <= 0):
-                        continue
-                    
-                    dr = move["damage_relations"]
-                    eff = 1.0
-                    for t in defender["types"]:
-                        if t in [x["name"] for x in dr["double_damage_to"]]: eff *= 2.0
-                        elif t in [x["name"] for x in dr["half_damage_to"]]: eff *= 0.5
-                        elif t in [x["name"] for x in dr["no_damage_to"]]: eff *= 0.0
-                    
-                    att_val = attacker["stats"]["attack"] if move["damage_class"] == "physical" else attacker["stats"]["special-attack"]
-                    def_val = defender["stats"]["defense"] if move["damage_class"] == "physical" else defender["stats"]["special-defense"]
-                    
-                    dmg = 0
-                    if random.random() < (move["accuracy"] / 100.0):
-                        dmg = max(1, int(((2 * 50 / 5 + 2) * move["power"] * (att_val / def_val) / 50 + 2) * eff))
-                    
-                    prefix = "Enemy " if idx == 2 else ""
-                    msg = f"{prefix}**{attacker['name'].capitalize()}** used {move['name'].capitalize()}! "
-                    if dmg == 0: msg += "It missed!"
-                    else:
-                        if eff > 1: msg += "It's super effective!"
-                        elif eff < 1 and eff > 0: msg += "It's not very effective..."
-                        elif eff == 0: msg += "It had no effect!"
-                    
-                    notification_box.markdown(get_dialogue_html(msg), unsafe_allow_html=True)
-                    p1_c, p2_c = ("img-p1 attack", "img-p2") if idx == 1 else ("img-p1", "img-p2 attack")
-                    arena_view.markdown(get_arena_html(curr_hp1, curr_hp2, p1_cls=p1_c, p2_cls=p2_c), unsafe_allow_html=True)
-                    time.sleep(0.4)
-                    
-                    if idx == 1:
-                        curr_hp2 = max(0, curr_hp2 - dmg)
-                        if dmg > 0: arena_view.markdown(get_arena_html(curr_hp1, curr_hp2, p1_cls="img-p1", p2_cls="img-p2 hit"), unsafe_allow_html=True)
-                    else:
-                        curr_hp1 = max(0, curr_hp1 - dmg)
-                        if dmg > 0: arena_view.markdown(get_arena_html(curr_hp1, curr_hp2, p1_cls="img-p1 hit", p2_cls="img-p2"), unsafe_allow_html=True)
-                    time.sleep(0.5)
-                    
-                    arena_view.markdown(get_arena_html(curr_hp1, curr_hp2), unsafe_allow_html=True)
-                    time.sleep(0.5)
-                    
-                    st.session_state.battle_log.append({"round": st.session_state.round_num,"attacker": attacker["name"].capitalize(),"move": move["name"].capitalize(),"damage": dmg})
-                    
-                    if curr_hp1 <= 0 or curr_hp2 <= 0:
-                        st.session_state.game_over = True
-                        break
-                        
-                st.session_state.hp1, st.session_state.hp2 = curr_hp1, curr_hp2
-                st.session_state.hp_history.append({"Round": st.session_state.round_num, "Pokemon": pkmn1["name"].capitalize(), "HP": curr_hp1})
-                st.session_state.hp_history.append({"Round": st.session_state.round_num, "Pokemon": pkmn2["name"].capitalize(), "HP": curr_hp2})
-                st.session_state.round_num += 1
+                notification_box.markdown(get_dialogue_html(msg), unsafe_allow_html=True)
+                p1_c, p2_c = ("img-p1 attack", "img-p2") if idx == 1 else ("img-p1", "img-p2 attack")
+                arena_view.markdown(get_arena_html(curr_hp1, curr_hp2, p1_cls=p1_c, p2_cls=p2_c), unsafe_allow_html=True)
+                time.sleep(0.4)
                 
-                if st.session_state.game_over:
-                    if curr_hp1 <= 0 and curr_hp2 <= 0: final_msg = "**It's a draw!**"
-                    elif curr_hp1 <= 0: final_msg = f"**Your {pkmn1['name'].capitalize()} fainted! You blacked out!**"
-                    else: final_msg = f"**Enemy {pkmn2['name'].capitalize()} fainted! You won!**"
-                    st.session_state.latest_action = final_msg
-                    notification_box.markdown(get_dialogue_html(final_msg), unsafe_allow_html=True)
-                    time.sleep(1.2)
-                    st.rerun()  # Full rerun to show results screen
+                if idx == 1:
+                    curr_hp2 = max(0, curr_hp2 - dmg)
+                    if dmg > 0: arena_view.markdown(get_arena_html(curr_hp1, curr_hp2, p1_cls="img-p1", p2_cls="img-p2 hit"), unsafe_allow_html=True)
                 else:
-                    st.session_state.latest_action = f"What will {pkmn1['name'].capitalize()} do?"
-                    notification_box.markdown(get_dialogue_html(st.session_state.latest_action), unsafe_allow_html=True)
+                    curr_hp1 = max(0, curr_hp1 - dmg)
+                    if dmg > 0: arena_view.markdown(get_arena_html(curr_hp1, curr_hp2, p1_cls="img-p1 hit", p2_cls="img-p2"), unsafe_allow_html=True)
+                time.sleep(0.5)
+                
+                arena_view.markdown(get_arena_html(curr_hp1, curr_hp2), unsafe_allow_html=True)
+                time.sleep(0.5)
+                
+                st.session_state.battle_log.append({"round": st.session_state.round_num,"attacker": attacker["name"].capitalize(),"move": move["name"].capitalize(),"damage": dmg})
+                
+                if curr_hp1 <= 0 or curr_hp2 <= 0:
+                    st.session_state.game_over = True
+                    break
+                    
+            st.session_state.hp1, st.session_state.hp2 = curr_hp1, curr_hp2
+            st.session_state.hp_history.append({"Round": st.session_state.round_num, "Pokemon": pkmn1["name"].capitalize(), "HP": curr_hp1})
+            st.session_state.hp_history.append({"Round": st.session_state.round_num, "Pokemon": pkmn2["name"].capitalize(), "HP": curr_hp2})
+            st.session_state.round_num += 1
+            
+            if st.session_state.game_over:
+                if curr_hp1 <= 0 and curr_hp2 <= 0: final_msg = "**It's a draw!**"
+                elif curr_hp1 <= 0: final_msg = f"**Your {pkmn1['name'].capitalize()} fainted! You blacked out!**"
+                else: final_msg = f"**Enemy {pkmn2['name'].capitalize()} fainted! You won!**"
+                st.session_state.latest_action = final_msg
+                notification_box.markdown(get_dialogue_html(final_msg), unsafe_allow_html=True)
+                time.sleep(1.2)
+                st.rerun()
+            else:
+                st.session_state.latest_action = f"What will {pkmn1['name'].capitalize()} do?"
+                notification_box.markdown(get_dialogue_html(st.session_state.latest_action), unsafe_allow_html=True)
 
-            with move_btn_ph.container():
-                btn_cols = st.columns(2)
-                for i, move in enumerate(st.session_state.p1_moves):
-                    col = btn_cols[i % 2]
-                    with col:
-                        m_type = move['type'].lower()
-                        m_color = TYPE_COLORS.get(m_type, "#d8dde3")
-                        st.markdown(f"""
+        with move_btn_ph.container():
+            btn_cols = st.columns(2)
+            for i, move in enumerate(st.session_state.p1_moves):
+                col = btn_cols[i % 2]
+                with col:
+                    m_type = move['type'].lower()
+                    m_color = TYPE_COLORS.get(m_type, "#d8dde3")
+                    st.markdown(f"""
 <style>
 div[data-testid="column"]:nth-child(2) button:has(p:contains("{move['name'].capitalize()}")) {{
     border-left: 8px solid {m_color} !important;
 }}
 </style>
 """, unsafe_allow_html=True)
-                        btn_label = f"{move['name'].upper()}\n{move['type'].capitalize()} • {move['power']} Pw"
-                        if st.button(btn_label, key=f"btn_m_{i}", use_container_width=True):
-                            execute_move(move)
+                    btn_label = f"{move['name'].upper()}\n{move['type'].capitalize()} • {move['power']} Pw"
+                    if st.button(btn_label, key=f"btn_m_{i}", use_container_width=True):
+                        execute_move(move)
+
 
     else:
         st.markdown("### Battle Log Output")
