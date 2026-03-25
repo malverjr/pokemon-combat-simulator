@@ -189,6 +189,18 @@ st.markdown("""
         z-index: 1;
     }
     
+    @keyframes faint {
+        0% { opacity: 1; transform: translateY(0); }
+        100% { opacity: 0; transform: translateY(100px); }
+    }
+    .faint {
+        animation: faint 0.8s ease-in forwards !important;
+    }
+    
+    .sprite-player, .sprite-opponent {
+        transition: transform 0.3s ease-out, opacity 0.3s ease-out; /* Smooth transitions for non-faint movements */
+    }
+    
     /* Force overlapping layout z-index priority */
     [data-testid="stHorizontalBlock"] { position: relative; z-index: 50; }
     
@@ -223,7 +235,7 @@ st.markdown("""
     .sprites-layer { position: absolute; width: 100%; height: 620px; top: 0; left: 0; z-index: 5; pointer-events: none;}
     
     /* Enemy stands far back ATOP the Pokeball ring */
-    .sprite-enemy { position: absolute; top: 230px; right: 260px; z-index: 4; transform: scale(1.25); transform-origin: bottom center; }
+    .sprite-opponent { position: absolute; top: 230px; right: 260px; z-index: 4; transform: scale(1.25); transform-origin: bottom center; }
     
     /* Player stands giant in the foreground ATOP the Pokeball ring */
     .sprite-player { position: absolute; bottom: 50px; left: 210px; z-index: 6; transform: scale(1.4); transform-origin: bottom center; }
@@ -556,8 +568,12 @@ def get_arena_html(curr_hp1, curr_hp2, p1_cls="img-p1", p2_cls="img-p2"):
     c1 = '#4CAF50' if f1 > 0.5 else ('#FFC107' if f1 > 0.2 else '#F44336')
     c2 = '#4CAF50' if f2 > 0.5 else ('#FFC107' if f2 > 0.2 else '#F44336')
     
-    p1_h = f'<div class="sprite-player"><img src="{pkmn1["sprite"]}" class="{p1_cls}" style="width:180px; transform: scaleX(-1);" /><div class="shadow"></div></div>' if pkmn1.get('sprite') else ""
-    p2_h = f'<div class="sprite-enemy"><img src="{pkmn2["sprite"]}" class="{p2_cls}" style="width:160px;" /><div class="shadow"></div></div>' if pkmn2.get('sprite') else ""
+    # Check for faint animation classes
+    p1_anim = "faint" if curr_hp1 <= 0 else ""
+    p2_anim = "faint" if curr_hp2 <= 0 else ""
+    
+    p1_h = f'<div class="sprite-player {p1_anim}"><img src="{pkmn1["sprite"]}" class="{p1_cls}" style="width:180px; transform: scaleX(-1);" /><div class="shadow"></div></div>' if pkmn1.get('sprite') else ""
+    p2_h = f'<div class="sprite-opponent {p2_anim}"><img src="{pkmn2["sprite"]}" class="{p2_cls}" style="width:180px;" /><div class="shadow"></div></div>' if pkmn2.get('sprite') else ""
     
     return f"""<div class="arena-container" style="{bg_inline}">
 <div class="hp-box player-hp">
