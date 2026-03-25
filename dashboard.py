@@ -769,7 +769,6 @@ if st.session_state.battle_active and not st.session_state.game_over:
         st.markdown('<div class="hud-sentinel"></div>', unsafe_allow_html=True)
         notification_box = st.empty()
         notification_box.markdown(get_dialogue_html(st.session_state.latest_action), unsafe_allow_html=True)
-    move_btn_ph = hud_cols[1].empty()
 
     def execute_move(p1_move):
         import time
@@ -839,28 +838,28 @@ if st.session_state.battle_active and not st.session_state.game_over:
             st.session_state.latest_action = f"What will {pkmn1['name'].capitalize()} do?"
             notification_box.markdown(get_dialogue_html(st.session_state.latest_action), unsafe_allow_html=True)
 
-    # Only the buttons live inside @st.fragment — their presses only rerun this tiny section
     @st.fragment
     def move_buttons():
-        with move_btn_ph.container():
-            btn_cols = st.columns(2)
-            for i, move in enumerate(st.session_state.p1_moves):
-                col = btn_cols[i % 2]
-                with col:
-                    m_type = move['type'].lower()
-                    m_color = TYPE_COLORS.get(m_type, "#d8dde3")
-                    st.markdown(f"""
+        btn_cols = st.columns(2)
+        for i, move in enumerate(st.session_state.p1_moves):
+            col = btn_cols[i % 2]
+            with col:
+                m_type = move['type'].lower()
+                m_color = TYPE_COLORS.get(m_type, "#d8dde3")
+                st.markdown(f"""
 <style>
 div[data-testid="column"]:nth-child(2) button:has(p:contains("{move['name'].capitalize()}")) {{
     border-left: 8px solid {m_color} !important;
 }}
 </style>
 """, unsafe_allow_html=True)
-                    btn_label = f"{move['name'].upper()}\n{move['type'].capitalize()} • {move['power']} Pw"
-                    if st.button(btn_label, key=f"btn_m_{i}", use_container_width=True):
-                        execute_move(move)
+                btn_label = f"{move['name'].upper()}\n{move['type'].capitalize()} • {move['power']} Pw"
+                if st.button(btn_label, key=f"btn_m_{i}", use_container_width=True):
+                    execute_move(move)
 
-    move_buttons()
+    with hud_cols[1]:
+        move_buttons()
+
 
 elif st.session_state.battle_active and st.session_state.game_over:
     st.markdown("### Battle Log Output")
