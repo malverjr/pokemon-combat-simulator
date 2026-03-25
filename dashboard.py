@@ -438,7 +438,32 @@ def extract_pokemon_data(data):
         "moves": [m["move"]["name"] for m in data["moves"]]
     }
 
-# --- SELECTION AREA ---
+# --- SELECTION & DATA (Must be top-level for combat visibility) ---
+pokemon_list = fetch_pokemon_list()
+p1_idx = pokemon_list.index("Mewtwo") if "Mewtwo" in pokemon_list else 0
+p2_idx = pokemon_list.index("Venusaur") if "Venusaur" in pokemon_list else 1
+
+# If battle is active, prioritize names from session_state to avoid stale selectbox values
+if st.session_state.get("battle_active"):
+    pkmn1_name = st.session_state.get("active_p1_name", pokemon_list[p1_idx]).capitalize()
+    pkmn2_name = st.session_state.get("active_p2_name", pokemon_list[p2_idx]).capitalize()
+else:
+    # Need to keep these at top level for first run or reset
+    pkmn1_name = pokemon_list[p1_idx]
+    pkmn2_name = pokemon_list[p2_idx]
+
+# Always fetch and extract data for current selections
+data1_raw = fetch_pokemon(pkmn1_name)
+data2_raw = fetch_pokemon(pkmn2_name)
+
+if not data1_raw or not data2_raw:
+    st.error("Could not fetch data for one or both Pokemon. Please check the names and try again.")
+    st.stop()
+    
+pkmn1 = extract_pokemon_data(data1_raw)
+pkmn2 = extract_pokemon_data(data2_raw)
+
+# --- SELECTION AREA UI (Hard-cleared during battle) ---
 selection_zone = st.empty()
 
 if not st.session_state.battle_active:
@@ -446,30 +471,17 @@ if not st.session_state.battle_active:
         st.header("1. Choose Your Pokemon")
         col1, col2 = st.columns(2)
         
-        pokemon_list = fetch_pokemon_list()
-        p1_idx = pokemon_list.index("Mewtwo") if "Mewtwo" in pokemon_list else 0
-        p2_idx = pokemon_list.index("Venusaur") if "Venusaur" in pokemon_list else 1
-        
         with col1:
-            pkmn1_name = st.selectbox("Player 1", options=pokemon_list, index=p1_idx)
+            # Note: Selectbox value is current, but we need the names variable above to be consistent
+            pkmn1_name = st.selectbox("Player 1", options=pokemon_list, index=p1_idx, key="sel_p1")
         with col2:
-            pkmn2_name = st.selectbox("Player 2", options=pokemon_list, index=p2_idx)
+            pkmn2_name = st.selectbox("Player 2", options=pokemon_list, index=p2_idx, key="sel_p2")
             
-        data1_raw = fetch_pokemon(pkmn1_name)
-        data2_raw = fetch_pokemon(pkmn2_name)
-        
-        if not data1_raw or not data2_raw:
-            st.error("Could not fetch data for one or both Pokemon. Please check the names and try again.")
-            st.stop()
-            
-        pkmn1 = extract_pokemon_data(data1_raw)
-        pkmn2 = extract_pokemon_data(data2_raw)
-        
         # -----------------
         # 2. Display Stats
         # -----------------
         st.header("2. Pokémon Stats")
-        col1, col2 = st.columns(2)
+        scol1, scol2 = st.columns(2)
         
         def render_pokemon_card(pkmn):
             with st.container():
@@ -482,9 +494,9 @@ if not st.session_state.battle_active:
                 st.markdown(f"**Types:** {badges_html}", unsafe_allow_html=True)
                 st.caption(f"**HP** {pkmn['stats']['hp']} · **ATT** {pkmn['stats']['attack']} · **DEF** {pkmn['stats']['defense']} · **SPA** {pkmn['stats']['special-attack']} · **SPD** {pkmn['stats']['special-defense']} · **SPE** {pkmn['stats']['speed']}")
         
-        with col1:
+        with scol1:
             render_pokemon_card(pkmn1)
-        with col2:
+        with scol2:
             render_pokemon_card(pkmn2)
             
         # -----------------
